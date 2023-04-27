@@ -39,3 +39,7 @@ metrics = runner.evaluate_loader(
     loader=loaders["valid"],
     callbacks=[dl.AccuracyCallback(input_key="logits", target_key="targets", topk=(1,3,5))],
 )
+
+# model inference
+for prediction in runner.predict_loader(loader=loaders["valid"]):
+    assert prediction["logits"].detach().cpu().numpy().shape[-1] == 10
