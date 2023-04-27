@@ -43,3 +43,11 @@ metrics = runner.evaluate_loader(
 # model inference
 for prediction in runner.predict_loader(loader=loaders["valid"]):
     assert prediction["logits"].detach().cpu().numpy().shape[-1] == 10
+
+# model post-processing
+model = runner.model.cpu()
+batch = next(iter(loaders["valid"]))[0]
+utils.trace_model(model=model, batch=batch)
+utils.quantize_model(model=model)
+utils.prune_model(model=model, pruning_fn="l1_unstructured", amount=0.8)
+utils.onnx_export(model=model, batch=batch, file="./logs/mnist.onnx", verbose=True)
