@@ -33,3 +33,9 @@ runner.train(
     minimize_valid_metric=True,
     verbose=True,
 )
+
+# model evaluation
+metrics = runner.evaluate_loader(
+    loader=loaders["valid"],
+    callbacks=[dl.AccuracyCallback(input_key="logits", target_key="targets", topk=(1,3,5))],
+)
