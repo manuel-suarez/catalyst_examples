@@ -1,10 +1,15 @@
 import os
+import logging
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from catalyst import dl, utils
 from catalyst.contrib.datasets import MNIST
 
+# configure logging
+logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
 # model configuration
+logging.info("Model configuration")
 model = nn.Sequential(nn.Flatten(), nn.Linear(28 * 28, 10))
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.02)
@@ -17,6 +22,7 @@ runner = dl.SupervisedRunner(
 )
 
 # model training
+logging.info("Model training")
 runner.train(
     model=model,
     criterion=criterion,
@@ -35,19 +41,24 @@ runner.train(
 )
 
 # model evaluation
+logging.info("Model evaluation")
 metrics = runner.evaluate_loader(
     loader=loaders["valid"],
     callbacks=[dl.AccuracyCallback(input_key="logits", target_key="targets", topk=(1,3,5))],
 )
 
 # model inference
+logging.info("Model inference")
 for prediction in runner.predict_loader(loader=loaders["valid"]):
     assert prediction["logits"].detach().cpu().numpy().shape[-1] == 10
 
 # model post-processing
+logging.info("Model post-processing")
 model = runner.model.cpu()
 batch = next(iter(loaders["valid"]))[0]
 utils.trace_model(model=model, batch=batch)
 utils.quantize_model(model=model)
 utils.prune_model(model=model, pruning_fn="l1_unstructured", amount=0.8)
 utils.onnx_export(model=model, batch=batch, file="./logs/mnist.onnx", verbose=True)
+
+logging.info("Done!")
