@@ -84,3 +84,44 @@ class CustomRunner(dl.Runner):
         }
 
 runner = CustomRunner()
+runner.train(
+    model=model,
+    criterion=criterion,
+    optimizer=optimizer,
+    loaders=loaders,
+    callbacks=[
+        dl.CriterionCallback(
+            input_key="combined_predictions",
+            target_key="labels",
+            metric_key="loss_discriminator",
+            criterion_key="discriminator"
+        ),
+        dl.BackwardCallback(metric_key="loss_discriminator"),
+        dl.OptimizerCallback(
+            optimizer_key="discriminator",
+            metric_key="loss_discriminator"
+        ),
+        dl.CriterionCallback(
+            input_key="generated_predictions",
+            target_key="misleading_labels",
+            metric_key="loss_generator",
+            criterion_key="generator"
+        ),
+        dl.BackwardCallback(metric_key="loss_generator"),
+        dl.OptimizerCallback(
+            optimizer_key="generator",
+            metric_key="loss_generator"
+        )
+    ],
+    valid_loader="train",
+    valid_metric="loss_generator",
+    minimize_valid_metric=True,
+    num_epochs=20,
+    verbose=True,
+    logdir="./logs_gan"
+)
+
+import matplotlib.pyplot as plt
+plt.imshow(runner.predict_batch(None)[0, 0].cpu().numpy())
+plt.savefig("figure1.png")
+plt.close()
