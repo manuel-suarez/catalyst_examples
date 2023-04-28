@@ -1,12 +1,17 @@
 import os
 import torch
+import logging
 from torch import nn
 from torch.utils.data import DataLoader
 from catalyst import dl
 from catalyst.contrib.datasets import MNIST
 from catalyst.contrib.layers import GlobalMaxPool2d, Lambda
 
+logging.basicConfig(filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+
 latent_dim = 128
+logging.info("Generator model")
 generator = nn.Sequential(
     # We want to generate 128 coefficientes to reshape into a 7x7x128 map
     nn.Linear(128, 128 * 7 * 7),
@@ -19,6 +24,7 @@ generator = nn.Sequential(
     nn.Conv2d(128, 1, (7, 7), padding=3),
     nn.Sigmoid(),
 )
+logging.info("Discriminator model")
 discriminator = nn.Sequential(
     nn.Conv2d(1, 64, (3, 3), stride=(2, 2), padding=1),
     nn.LeakyReLU(0.2, inplace=True),
@@ -38,6 +44,7 @@ optimizer = {
 train_data = MNIST(os.getcwd(), train=False)
 loaders = {"train": DataLoader(train_data, batch_size=32)}
 
+logging.info("Runner")
 class CustomRunner(dl.Runner):
     def predict_batch(self, batch):
         batch_size = 1
@@ -84,6 +91,7 @@ class CustomRunner(dl.Runner):
         }
 
 runner = CustomRunner()
+logging.info("Train")
 runner.train(
     model=model,
     criterion=criterion,
@@ -122,6 +130,9 @@ runner.train(
 )
 
 import matplotlib.pyplot as plt
+logging.info("Results")
 plt.imshow(runner.predict_batch(None)[0, 0].cpu().numpy())
 plt.savefig("figure1.png")
 plt.close()
+
+logging.info("Done!")
