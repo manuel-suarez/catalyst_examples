@@ -37,3 +37,50 @@ optimizer = {
 }
 train_data = MNIST(os.getcwd(), train=False)
 loaders = {"train": DataLoader(train_data, batch_size=32)}
+
+class CustomRunner(dl.Runner):
+    def predict_batch(self, batch):
+        batch_size = 1
+        # Sample random points in the latent space
+        random_latent_vectors = torch.randn(batch_size, latent_dim).to(self.engine.device)
+        # Decode them to fake images
+        generated_images = self.model["generator"](random_latent_vectors).detach()
+        return generated_images
+
+    def handle_batch(self, batch):
+        real_images, _ = batch
+        batch_size = real_images.shape[0]
+
+        # Sample random points in the latent space
+        random_latent_vectors = torch.randn(batch_size, latent_dim).to(self.engine.device)
+
+        # Decode them to fake images
+        generated_images = self.model["generator"](random_latent_vectors).detach()
+        # Combine them with real images
+        combined_images = torch.cat([generated_images, real_images])
+
+        # Assemble labels discriminating real from fake images
+        labels = torch.cat([torch.ones((batch_size, 1)), torch.zeros((batch_size, 1))]).to(self.engine.device)
+        # Add random noise to the labels -  important trick!
+        labels += 0.05 * torch.rand(labels.shape).to(self.engine.device)
+
+        # Discriminator forward
+        combined_predictions = self.model["discriminator"](combined_images)
+
+        # Sample random points in the latent space
+        random_latent_vectors = torch.randn(batch_size, latent_dim).to(self.engine.device)
+        # Assemble labels that say "all real images"
+        misleading_labels = torch.zeros((batch_size, 1)).to(self.engine.device)
+
+        # Generator forward
+        generated_images = self.model["generator"](random_latent_vectors)
+        generated_predictions = self.model["discriminator"](generated_images)
+
+        self.batch = {
+            "combined_predictions": combined_predictions,
+            "labels": labels,
+            "generated_predictions": generated_predictions,
+            "misleading_labels": misleading_labels
+        }
+
+runner = CustomRunner()
